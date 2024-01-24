@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infosys Chat Bot</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .chat-container {
+            width: 400px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .chat-body {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #fff;
+        }
+
+        .message {
+            margin-bottom: 15px;
+        }
+
+        .user-message {
+            text-align: right;
+            color: #3498db;
+        }
+
+        .bot-message {
+            text-align: left;
+            color: #2ecc71;
+        }
+
+        .message-text {
+            padding: 8px;
+            border-radius: 5px;
+            display: inline-block;
+            max-width: 70%;
+        }
+
+        .loading-bubble {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #3498db;
+            color: #fff;
+            padding: 8px;
+            border-radius: 50%;
+            animation: fadeInOut 1.5s ease-in-out infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% {
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .input-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #f4f4f4;
+        }
+
+        #userInput {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #sendButton {
+            margin-left: 10px;
+            padding: 8px 15px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .file-upload-container {
+            margin-top: 10px;
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload label {
+            background-color: #3498db;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <div class="chat-header">
+        <h2>Infosys Chat Bot</h2>
+    </div>
+    <div class="chat-body" id="chatBody">
+        <!-- Chat messages will appear here -->
+    </div>
+    <div class="input-container">
+        <input type="text" id="userInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+        <button id="sendButton" onclick="sendMessage()">Send</button>
+        <div class="loading-bubble" id="loadingBubble">...</div>
+    </div>
+    <div class="input-container">
+        <input type="file" id="fileInput" onchange="handleFileUpload(event)">
+        <button class="upload-button" onclick="uploadFile()">Upload</button>
+    </div>
+</div>
+
+<script>
+    function handleKeyPress(event) {
+        // Check if the pressed key is 'Enter'
+        if (event.key === 'Enter') {
+          sendMessage()
+        }
+    }
+    function sendMessage() {
+        const userInput = document.getElementById("userInput").value;
+        if (userInput.trim() === "") return;
+
+        const chatBody = document.getElementById("chatBody");
+        const userMessage = document.createElement("div");
+        userMessage.className = "message user-message";
+        userMessage.innerHTML = '<span class="message-text">' + userInput + '</span>';
+        chatBody.appendChild(userMessage);
+
+        // Show loading indicator while waiting for the response
+        showLoading();
+
+        // Send the user message to the server using Ajax
+        fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ "user_input": userInput }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            var botMessage = document.createElement("div");
+            botMessage.className = "message bot-message";
+            botMessage.innerHTML = '<span class="message-text">' + data.message + '</span>';
+            chatBody.appendChild(botMessage);
+
+            // Scroll to the bottom of the chat body
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            // Hide loading indicator after receiving the response
+            hideLoading();
+        });
+
+        // Clear the user input field
+        document.getElementById("userInput").value = "";
+    }
+
+    function showLoading() {
+        document.getElementById("loadingBubble").style.display = "block";
+    }
+
+    function hideLoading() {
+        document.getElementById("loadingBubble").style.display = "none";
+    }
+
+    function uploadFile() {
+        var fileInput = document.getElementById("fileInput");
+
+        if (fileInput.files.length) {
+            // Show loading indicator while waiting for the response
+            showLoading();
+
+            // Upload the selected file to the server using Ajax
+            var formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            fetch("/files", {
+                method: "POST",
+                body: formData,
+            })
+
+            .then(response => response.json())
+            .then(data => {
+                // Handle the server response (you can customize this)
+                console.log("File uploaded:", data);
+            })
+            .finally(() => {
+                // Hide loading indicator after receiving the response
+                hideLoading();
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
