@@ -18,7 +18,7 @@ function sendMessage() {
     showLoading();
 
     // Send the user message to the server using Ajax
-    fetch("/chat", {
+    fetch("/chat-gpt", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -27,10 +27,15 @@ function sendMessage() {
     })
     .then(response => response.json())
     .then(data => {
-        var botMessage = document.createElement("div");
-        botMessage.className = "message bot-message";
-        botMessage.innerHTML = '<span class="message-text">' + data.message + '</span>';
-        chatBody.appendChild(botMessage);
+        var gptMessage = document.createElement("div");
+        var geminiMessage = document.createElement("div");
+        gptMessage.className = "message bot-message";
+        gptMessage.innerHTML = '<span class="message-text">' + 'GPT: ' + data.gpt_message + '</span>';
+        chatBody.appendChild(gptMessage);
+        
+        geminiMessage.className = "message bot-message";
+        geminiMessage.innerHTML = '<span class="message-text">' + 'Gemini: ' + data.gemini_message + '</span>';
+        chatBody.appendChild(geminiMessage);
 
         // Scroll to the bottom of the chat body
         chatBody.scrollTop = chatBody.scrollHeight;

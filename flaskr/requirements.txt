@@ -1,7 +1,7 @@
 flask
 openai
+google-generativeai
 pinecone-client
 langchain
 python-dotenv
 pypdf2
-build

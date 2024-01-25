@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infosys Chat Bot</title>
+    <title>RAG Chat Bot</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
 <div class="chat-container">
     <div class="chat-header">
-        <h2>Infosys Chat Bot</h2>
+        <h2>RAG Chat Bot</h2>
     </div>
     <div class="chat-body" id="chatBody">
         <!-- Chat messages will appear here -->
@@ -21,7 +21,7 @@
     </div>
     <div class="input-container">
         <input type="file" id="fileInput" onchange="handleFileUpload(event)">
-        <button class="upload-button" onclick="uploadFile()">Upload</button>
+        <button class="upload-button" onclick="uploadFile()">Upload Context File</button>
     </div>
 </div>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
