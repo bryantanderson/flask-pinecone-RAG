@@ -1,7 +1,6 @@
-To run the flask app, first install the required dependencies
+To run the flask app, go through the following commands:
 
+python -m venv .venv
+. .venv/bin/activate
 pip install -r requirements.txt
-
-Then run using
-
-flask run
+gunicorn -w 4 -b 127.0.0.1:5000 flaskr:app

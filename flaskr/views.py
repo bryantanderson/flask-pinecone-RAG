@@ -7,10 +7,9 @@ from dotenv import load_dotenv
 from pinecone import Pinecone, PodSpec
 from flask import Flask, render_template, request, jsonify
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from flaskr import app
 
 load_dotenv()
-
-app = Flask(__name__)
 
 pinecone = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -155,8 +154,5 @@ def process_file():
     index.upsert(vectors=[(id, embedding, {"text": metadata}) for id, embedding, metadata in zip(ids, file_vectors, texts)])
 
     return "File upload successful"
-
-if __name__ == "__main__":
-    app.run()
 
 
