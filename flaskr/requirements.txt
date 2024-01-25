@@ -1,0 +1,7 @@
+flask
+openai
+pinecone-client
+langchain
+python-dotenv
+pypdf2
+build
