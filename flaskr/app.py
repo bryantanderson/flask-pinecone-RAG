@@ -7,9 +7,11 @@ from dotenv import load_dotenv
 from pinecone import Pinecone, PodSpec
 from flask import Flask, render_template, request, jsonify
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from flaskr import app
+from flask import Flask
 
 load_dotenv()
+
+app = Flask(__name__)
 
 pinecone = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
