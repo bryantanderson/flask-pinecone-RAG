@@ -22,7 +22,6 @@ EMBEDDING_MODEL = 'text-embedding-ada-002'
 index_name = 'file-index'
 
 if index_name not in [index['name'] for index in pinecone.list_indexes()]:
-    print(pinecone.list_indexes())
     pinecone.create_index(
         index_name, 
         dimension=1536,
@@ -157,4 +156,5 @@ def process_file():
 
     return "File upload successful"
 
-
+if __name__ == "__main__": 
+    app.run(debug=True)
