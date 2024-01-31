@@ -44,44 +44,52 @@ gpt_messages = [
 gemini_messages = []
 
 def get_chat_completion(user_message):
-    new_messages = gpt_messages.copy()
-    new_messages.append({"role": "user", "content": user_message})
+    try:
+        new_messages = gpt_messages.copy()
+        new_messages.append({"role": "user", "content": user_message})
 
-    response = client.chat.completions.create(
-        model='gpt-3.5-turbo',
-        messages=new_messages,
-        temperature=0, 
-    )
+        response = client.chat.completions.create(
+            model='gpt-3.5-turbo',
+            messages=new_messages,
+            temperature=0, 
+        )
 
-    # Store assistant message
-    assistant_message = response.choices[0].message
-    gpt_messages.append(assistant_message)
+        # Store assistant message
+        assistant_message = response.choices[0].message
+        gpt_messages.append(assistant_message)
 
-    # Convert ChatCompletionMessage to dictionary
-    assistant_message_dict = {
-        "content": assistant_message.content,
-        "role": assistant_message.role,
-        # Add other attributes you want to include
-    }
+        # Convert ChatCompletionMessage to dictionary
+        assistant_message_dict = {
+            "content": assistant_message.content,
+            "role": assistant_message.role,
+            # Add other attributes you want to include
+        }
 
-    return assistant_message_dict["content"]
+        return assistant_message_dict["content"]
+
+    except Exception as e:
+        print(f"Error while attempting to generate response using GPT: {e}")
 
 def get_gemini_response(user_message):
-    formatted_user_message = {
-        "role": "user",
-        "parts": [user_message]
-    }
-    gemini_messages.append(formatted_user_message)
+    try:
+        formatted_user_message = {
+            "role": "user",
+            "parts": [user_message]
+        }
+        gemini_messages.append(formatted_user_message)
+
+        model_response = gemini.generate_content(gemini_messages).text
+
+        formatted_model_message = {
+            "role": "model",
+            "parts": [model_response]
+        }
+        gemini_messages.append(formatted_model_message)
+
+        return model_response
     
-    model_response = gemini.generate_content(gemini_messages).text
-
-    formatted_model_message = {
-        "role": "model",
-        "parts": [model_response]
-    }
-    gemini_messages.append(formatted_model_message)
-
-    return model_response
+    except Exception as e:
+        print(f"Error while attempting to generate response using Gemini: {e}")
 
 def extract_text_from_file(file):
     """Takes a PDF, extracts the text and converts it into a list of chunks"""
@@ -107,3 +115,24 @@ def generate_vectors(texts):
     embeddings_response = client.embeddings.create(input=texts, model=EMBEDDING_MODEL)
     embeddings = [data.embedding for data in embeddings_response.data]
     return embeddings
+
+def generate_summary(text):
+    try:
+        """Takes a text and generates a summary using Gemini."""
+        gemini_prompt = f"""
+        You will be given a text, which will be after the # delimiter. 
+        Please summarize the text in 500 words or less.
+        ##############################################################
+        {text}
+        """
+        model_response = gemini.generate_content(gemini_prompt).text
+        formatted_model_message = {
+            "role": "model",
+            "parts": [model_response]
+        }
+        gemini_messages.append(formatted_model_message)
+        return model_response
+    
+    except Exception as e:
+        print(f"Error while trying to summarize using Gemini: {e}")
+
