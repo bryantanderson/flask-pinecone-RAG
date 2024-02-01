@@ -119,20 +119,21 @@ def generate_vectors(texts):
 def generate_summary(text):
     try:
         """Takes a text and generates a summary using Gemini."""
+
         gemini_prompt = f"""
-        You will be given a text, which will be after the # delimiter. 
+        You will be given a text, which will be placed after the - delimiter. 
         Please summarize the text in 500 words or less.
-        ##############################################################
+        --------------------------------------------------------------------
         {text}
         """
+
         model_response = gemini.generate_content(gemini_prompt).text
-        formatted_model_message = {
-            "role": "model",
-            "parts": [model_response]
-        }
-        gemini_messages.append(formatted_model_message)
         return model_response
     
     except Exception as e:
         print(f"Error while trying to summarize using Gemini: {e}")
 
+def get_num_vectors(index):
+    index_stats = index.describe_index_stats()
+    num_vectors = index_stats['total_vector_count']
+    return num_vectors

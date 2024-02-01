@@ -4,6 +4,15 @@ function handleKeyPress(event) {
       sendMessage()
     }
 }
+
+function createChatElement(textContent, responder)  {
+    const chatBody = document.getElementById("chatBody");
+    var message = document.createElement("div");
+    message.className = "message bot-message";
+    message.innerHTML = '<span class="message-text">' + responder + ': ' + textContent + '</span>';
+    chatBody.appendChild(message);
+}
+
 function sendMessage() {
     const userInput = document.getElementById("userInput").value;
     if (userInput.trim() === "") return;
@@ -27,16 +36,12 @@ function sendMessage() {
     })
     .then(response => response.json())
     .then(data => {
-        var gptMessage = document.createElement("div");
-        var geminiMessage = document.createElement("div");
-        gptMessage.className = "message bot-message";
-        gptMessage.innerHTML = '<span class="message-text">' + 'GPT: ' + data.gpt_message + '</span>';
-        chatBody.appendChild(gptMessage);
-        
-        geminiMessage.className = "message bot-message";
-        geminiMessage.innerHTML = '<span class="message-text">' + 'Gemini: ' + data.gemini_message + '</span>';
-        chatBody.appendChild(geminiMessage);
-
+        if (data.error) {
+            createChatElement(data.message)
+            hideLoading();
+            return;
+        }
+        createChatElement(data.gpt_message, 'GPT');
         // Scroll to the bottom of the chat body
         chatBody.scrollTop = chatBody.scrollHeight;
 
@@ -71,15 +76,31 @@ function uploadFile() {
             method: "POST",
             body: formData,
         })
-
         .then(response => response.json())
         .then(data => {
             // Handle the server response 
-            console.log("File uploaded:", data);
+            createChatElement(data.message, 'Server');
         })
         .finally(() => {
             // Hide loading indicator after receiving the response
             hideLoading();
         });
     }
+}
+
+function clearFile() {
+    showLoading();
+    fetch("/clear", {
+        method: "POST",
+        body: null,
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Handle the server response 
+        createChatElement(data.message, 'Server');
+    })
+    .finally(() => {
+        // Hide loading indicator after receiving the response
+        hideLoading();
+    });
 }
