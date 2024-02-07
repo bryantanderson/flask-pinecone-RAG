@@ -1,17 +1,17 @@
 import os
-from time import sleep
 from openai import OpenAI
 from dotenv import load_dotenv
 from pinecone import Pinecone, PodSpec
-from flask import render_template, request, jsonify
+from flask import request, jsonify
 from flaskr import app
 from flaskr.helpers import (
     generate_vectors,
     get_chat_completion,
     extract_text_from_file,
     generate_summary,
-    generate_file_chunks
+    generate_file_chunks,
 )
+from flaskr.hyde import get_hypothetical_response_embedding
 
 load_dotenv()
 
@@ -44,19 +44,21 @@ def get_bot_response():
         use_rag = request.json.get('rag')
         gpt_response = None
         if use_rag:
+            # Use GPT to get a hypothetical answer to use in HyDE
+            hypothetical_answer_embedding = get_hypothetical_response_embedding(user_query)
+
             # Create a vector using the user's message to compare similarity match using pinecone
-            user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
+            # user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
 
             # Query pinecone to get similar vectors 
-            similar_vectors = index.query(vector=user_query_embedding, top_k=5, include_metadata=True)
+            similar_vectors = index.query(vector=hypothetical_answer_embedding, top_k=3, include_metadata=True)
 
             # Extract the text associated with the embedding
             contexts = [item['metadata']['text'] for item in similar_vectors['matches']]
 
             # Add the extracted metadata text to use as additional context for the user's query
             context = "\n\n---\n\n".join(contexts)
-            summarized_context = generate_summary(context)
-            augmented_user_query = summarized_context + "\n\n-----\n\n" + user_query
+            augmented_user_query = context + "\n\n-----\n\n" + user_query
 
             # Use this new augmented query with GPT
             gpt_response = get_chat_completion(augmented_user_query)  

@@ -8,6 +8,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from pinecone import Pinecone, PodSpec
 from langchain.text_splitter import RecursiveCharacterTextSplitter, Document
+from langchain.prompts import PromptTemplate
 
 load_dotenv()
 
@@ -41,9 +42,11 @@ gpt_chat_history = [
         "role": "system", 
         "content": 
         """
-        You are an intelligent AI assistant that is able to answer anything with great detail and passion. 
-        You are helpful, friendly, and your mission is to help people with any queries they may have.
-        To ensure a smooth user experience, please limit your responses to a maximum of 100 words.
+        You are an intelligent AI assistant that is able to answer anything in great detail. 
+        You are helpful, friendly, and your mission is to answer any queries a user may have.
+        To ensure a smooth user experience, limit all your responses to a maximum of 100 words.
+        When answering, ensure to include specific details, such as specific dates or names if given
+        such information. 
         """
     }
 ]
@@ -53,7 +56,10 @@ gemini_messages = []
 
 def get_chat_completion(user_message: str) -> str:
     try:
+        global total_token_usage
+
         gpt_chat_history.append({"role": "user", "content": user_message})
+        
         manage_gpt_tokens(user_message)
 
         response = client.chat.completions.create(
@@ -71,6 +77,8 @@ def get_chat_completion(user_message: str) -> str:
             # Add other attributes you want to include
         }
         gpt_chat_history.append(assistant_message_dict)
+
+        total_token_usage += len(token_encoder(user_message)) + len(token_encoder(assistant_message))
 
         return assistant_message.content
 
@@ -133,6 +141,7 @@ def generate_vectors(texts: List[str]) -> List[List[float]]:
 
 def generate_summary(text: str) -> None:
     try:
+        global total_token_usage
         """Takes a text and generates a summary using OpenAI."""
 
         prompt = f"""
@@ -147,6 +156,7 @@ def generate_summary(text: str) -> None:
             "role": "user",
             "content": prompt
         })
+
         manage_gpt_tokens(prompt)
 
         response = client.chat.completions.create(
@@ -163,6 +173,8 @@ def generate_summary(text: str) -> None:
             "role": assistant_message.role,
         }
         gpt_chat_history.append(assistant_message_dict)
+
+        total_token_usage += len(token_encoder(prompt)) + len(token_encoder(assistant_message))
     
     except Exception as e:
         gpt_chat_history.pop()
@@ -181,12 +193,14 @@ def delete_all_vectors(index) -> None:
 
 def manage_gpt_tokens(message: str) -> None:
     global total_token_usage
+    print(f"Current total tokens before message: {total_token_usage}")
     message_tokens = token_encoder.encode(message)
     num_tokens = len(message_tokens)
     if num_tokens + total_token_usage >= CONTEXT_WINDOW:
         index = 0
         chat_history_length = len(gpt_chat_history)
         original_messages_length = 0
+        original_messages_tokens = 0
         popped_user_message_index = -1
         user_message = None
         assistant_message = None
@@ -196,21 +210,27 @@ def manage_gpt_tokens(message: str) -> None:
             if index == summarization_index:
                 continue
             current_message = gpt_chat_history[index]
-            # Retrieve  and remove them from the chat history
+            # Retrieve messages, remove them from the chat history. 
+            # Compute the total length and tokens used in the messages
             if current_message.role == "user":
                 user_message = current_message
                 # Keep track of where the first user message was popped
                 gpt_chat_history.pop(index)
                 popped_user_message_index = index
                 original_messages_length += len(user_message.content)
+                original_messages_tokens += len(token_encoder(user_message.content))
+
             elif current_message.role == "assistant":
                 assistant_message = current_message
                 gpt_chat_history.pop(index)
                 original_messages_length += len(assistant_message.content)
+                original_messages_tokens += len(token_encoder(assistant_message.content))
+
             index += 1
 
         # Summarize the user - assistant message pair if it exists
         if user_message and assistant_message:
+
             prompt = f"""
             You will be given a message from a user, and a message from an AI assistant, differentiated
             by the "role" field. Summarize the conversation into a paragraph in {original_messages_length / 2} or less.
@@ -219,7 +239,8 @@ def manage_gpt_tokens(message: str) -> None:
             user message: {user_message}
             ##########################################################################################
             assistant message: {assistant_message}
-            """
+            
+            Summary: """
 
             response = client.chat.completions.create(
                 model='gpt-3.5-turbo-0125',
@@ -238,10 +259,7 @@ def manage_gpt_tokens(message: str) -> None:
                 "role": assistant_message.role,
             }
             gpt_chat_history.insert(popped_user_message_index, assistant_message_dict)
-            total_token_usage = len(token_encoder.encode(assistant_message.content)) + total_token_usage
-    
-    else:
-        total_token_usage += num_tokens
-
-
+            # Compute the new total token count
+            total_token_usage += len(token_encoder.encode(assistant_message.content)) 
+            total_token_usage -= original_messages_tokens
 

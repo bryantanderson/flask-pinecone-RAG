@@ -35,7 +35,7 @@ if prompt := st.chat_input("Enter a message..."):
     # Send a request to the flask server to generate a response
     request_body = {
         "user_input": prompt,
-        "rag": False
+        "rag": True
     }
     response = requests.post(
         url=f"{BASE_URL}/chat", 
@@ -62,7 +62,7 @@ if prompt := st.chat_input("Enter a message..."):
 if uploaded_file and (uploaded_file.name != st.session_state.uploaded_file_name):
     files = {'file': uploaded_file}
     response = requests.post(
-        url=f"{BASE_URL}/summarize-file", 
+        url=f"{BASE_URL}/files", 
         files=files,
     )
     response_json = response.json()

@@ -7,3 +7,4 @@ python-dotenv
 pypdf2
 gunicorn
 tiktoken
+langchain-openai
