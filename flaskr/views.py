@@ -10,7 +10,7 @@ from flaskr.helpers import (
     get_chat_completion,
     extract_text_from_file,
     generate_summary,
-    get_num_vectors
+    generate_file_chunks
 )
 
 load_dotenv()
@@ -33,41 +33,38 @@ if index_name not in [index['name'] for index in pinecone.list_indexes()]:
 
 index = pinecone.Index(index_name)
 
-@app.route("/")
-def home():
-    return render_template("index.html")
+# @app.route("/")
+# def home():
+#     return render_template("index.html")
 
-
-@app.route("/chat-gpt", methods=["POST"])
+@app.route("/chat", methods=["POST"])
 def get_bot_response():    
-    try:
-        # The user may have just uploaded a file, and pinecone will not register these vectors directly
-        # Use this while loop to continuously check whether they have been uploaded
-        # current_num_vectors = get_num_vectors(index)
-        # while current_num_vectors != expected_vector_count:
-        #     sleep(1)
-        #     current_num_vectors = get_num_vectors(index)
-
+    try:        
         user_query = request.json.get('user_input')
+        use_rag = request.json.get('rag')
+        gpt_response = None
+        if use_rag:
+            # Create a vector using the user's message to compare similarity match using pinecone
+            user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
 
-        # Create a vector using the user's message to compare similarity match using pinecone
-        user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
+            # Query pinecone to get similar vectors 
+            similar_vectors = index.query(vector=user_query_embedding, top_k=5, include_metadata=True)
 
-        # Query pinecone to get similar vectors 
-        similar_vectors = index.query(vector=user_query_embedding, top_k=5, include_metadata=True)
+            # Extract the text associated with the embedding
+            contexts = [item['metadata']['text'] for item in similar_vectors['matches']]
 
-        # Extract the text associated with the embedding
-        contexts = [item['metadata']['text'] for item in similar_vectors['matches']]
+            # Add the extracted metadata text to use as additional context for the user's query
+            context = "\n\n---\n\n".join(contexts)
+            summarized_context = generate_summary(context)
+            augmented_user_query = summarized_context + "\n\n-----\n\n" + user_query
 
-        # Add the extracted metadata text to use as additional context for the user's query
-        context = "\n\n---\n\n".join(contexts)
-        summarized_context = generate_summary(context)
-        augmented_user_query = summarized_context + "\n\n-----\n\n" + user_query
+            # Use this new augmented query with GPT
+            gpt_response = get_chat_completion(augmented_user_query)  
 
-        # Use this new augmented query with GPT
-        gpt_response = get_chat_completion(augmented_user_query)  
+        else:
+            gpt_response = get_chat_completion(user_query) 
 
-        return jsonify({"gpt_message": gpt_response, "error": False})
+        return jsonify({"message": gpt_response, "error": False})
     
     except Exception as e:
         return jsonify({"message": f"Error while trying to generate a response: {e}", "error": True})
@@ -80,10 +77,14 @@ def process_file():
             return jsonify({"error": "No file provided"})
 
         file = request.files['file'].read()
-        file_docs = extract_text_from_file(file)
-        # Extract the text content to convert into embeddings
+        file_text = extract_text_from_file(file)
+        file_docs = generate_file_chunks(file_text)
+        # Extract the text content from the chunks to convert into embeddings
         texts = [doc.page_content for doc in file_docs]
         file_vectors = generate_vectors(texts)
+
+        # Delete all old indexes to prevent overlap
+        index.delete(delete_all=True)
 
         # Get the ID of the last vector in the index
         index_stats = index.describe_index_stats()
@@ -97,6 +98,23 @@ def process_file():
     
     except Exception as e:
         return jsonify({"message": f"Error while trying to process File: {e}", "error": True})
+    
+
+@app.route("/summarize-file", methods=["POST"])
+def summarize_file():
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file provided"})
+
+        file = request.files['file'].read()
+        file_text = extract_text_from_file(file)
+        generate_summary(file_text)
+
+        return jsonify({"message": f"File processed successfully!", "error": False})
+    
+    except Exception as e:
+        return jsonify({"message": f"Error while trying to process File: {e}", "error": True})
+
 
 @app.route("/clear", methods=["POST"])
 def clear_file_information():

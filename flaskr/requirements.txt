@@ -6,3 +6,4 @@ langchain
 python-dotenv
 pypdf2
 gunicorn
+tiktoken
