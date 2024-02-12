@@ -135,6 +135,12 @@ def generate_vectors(texts: List[str]) -> List[List[float]]:
 
 def generate_summary(text: str) -> None:
     try:
+        assistant_message_dict = {
+            "content": text,
+            "role": "assistant",
+        }
+        gpt_chat_history.append(assistant_message_dict)
+        return
         global total_token_usage
         """Takes a text and generates a summary using OpenAI."""
 
