@@ -11,7 +11,7 @@ from flaskr.helpers import (
     generate_summary,
     generate_file_chunks,
 )
-from flaskr.hyde import get_hypothetical_response_embedding
+from flaskr.rag import get_hypothetical_response_embedding
 
 load_dotenv()
 
@@ -41,8 +41,8 @@ def get_bot_response():
         gpt_response = None
         print(f"Get bot response called with input {request}")
         if use_rag:
-            # hypothetical_answer_embedding = get_hypothetical_response_embedding(user_query)
-            user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
+            # user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
+            user_query_embedding = get_hypothetical_response_embedding(user_query)
 
             # Query pinecone to get similar vectors 
             similar_vectors = index.query(vector=user_query_embedding, top_k=3, include_metadata=True)
@@ -108,7 +108,8 @@ def summarize_file():
         file_bytes = file.read()
         file_size = len(file_bytes)
         file_text = extract_text_from_file(file_bytes)
-        file_summary = generate_summary(file_text)
+        generate_summary(file_text)
+
 
         return jsonify({"message": f"File processed successfully!", "error": False})
     

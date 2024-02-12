@@ -8,7 +8,6 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from pinecone import Pinecone, PodSpec
 from langchain.text_splitter import RecursiveCharacterTextSplitter, Document
-from langchain.prompts import PromptTemplate
 
 load_dotenv()
 
@@ -50,7 +49,7 @@ gpt_chat_history = [
         """
     }
 ]
-gemini_chat_history = []
+
 
 def get_chat_completion(user_message: str) -> str:
     try:
@@ -79,28 +78,6 @@ def get_chat_completion(user_message: str) -> str:
     except Exception as e:
         gpt_chat_history.pop()
         print(f"Error while attempting to generate response using GPT: {e}")
-
-
-def get_gemini_response(user_message: str) -> str:
-    try:
-        formatted_user_message = {
-            "role": "user",
-            "parts": [user_message]
-        }
-        gemini_chat_history.append(formatted_user_message)
-
-        model_response = gemini.generate_content(gemini_chat_history).text
-
-        formatted_model_message = {
-            "role": "model",
-            "parts": [model_response]
-        }
-        gemini_chat_history.append(formatted_model_message)
-
-        return model_response
-    
-    except Exception as e:
-        print(f"Error while attempting to generate response using Gemini: {e}")
 
 
 def extract_text_from_file(file) -> str:
@@ -135,12 +112,6 @@ def generate_vectors(texts: List[str]) -> List[List[float]]:
 
 def generate_summary(text: str) -> None:
     try:
-        assistant_message_dict = {
-            "content": text,
-            "role": "assistant",
-        }
-        gpt_chat_history.append(assistant_message_dict)
-        return
         global total_token_usage
         """Takes a text and generates a summary using OpenAI."""
 
@@ -172,8 +143,6 @@ def generate_summary(text: str) -> None:
             "role": assistant_message.role,
         }
         gpt_chat_history.append(assistant_message_dict)
-
-        return assistant_message.content
     
     except Exception as e:
         gpt_chat_history.pop()
