@@ -41,11 +41,11 @@ def get_bot_response():
         gpt_response = None
         print(f"Get bot response called with input {request}")
         if use_rag:
-            hypothetical_answer_embedding = get_hypothetical_response_embedding(user_query)
-            # user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
+            # hypothetical_answer_embedding = get_hypothetical_response_embedding(user_query)
+            user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
 
             # Query pinecone to get similar vectors 
-            similar_vectors = index.query(vector=hypothetical_answer_embedding, top_k=3, include_metadata=True)
+            similar_vectors = index.query(vector=user_query_embedding, top_k=3, include_metadata=True)
 
             # Extract the text associated with the embedding
             contexts = [item['metadata']['text'] for item in similar_vectors['matches']]
@@ -109,7 +109,6 @@ def summarize_file():
         file_size = len(file_bytes)
         file_text = extract_text_from_file(file_bytes)
         file_summary = generate_summary(file_text)
-        print(f"File successfully summarized: {file_summary}")
 
         return jsonify({"message": f"File processed successfully!", "error": False})
     

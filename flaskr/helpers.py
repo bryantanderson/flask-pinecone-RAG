@@ -140,7 +140,7 @@ def generate_summary(text: str) -> None:
 
         prompt = f"""
         You will be given a text, which will be placed after the # delimiter. 
-        Summarize the text in 500 words or less, making sure to retain important information,
+        Summarize the text, making sure to retain important information,
         such as the specific names of people, dates, and numbers.
         #######################################################################
         {text}
