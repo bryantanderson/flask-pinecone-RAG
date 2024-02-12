@@ -44,23 +44,19 @@ gpt_chat_history = [
         """
         You are an intelligent AI assistant that is able to answer anything in great detail. 
         You are helpful, friendly, and your mission is to answer any queries a user may have.
-        To ensure a smooth user experience, limit all your responses to a maximum of 100 words.
+        To ensure a smooth user experience, limit all your responses to a maximum of 300 words.
         When answering, ensure to include specific details, such as specific dates or names if given
         such information. 
         """
     }
 ]
-
-gemini_messages = []
-
+gemini_chat_history = []
 
 def get_chat_completion(user_message: str) -> str:
     try:
         global total_token_usage
 
         gpt_chat_history.append({"role": "user", "content": user_message})
-        
-        manage_gpt_tokens(user_message)
 
         response = client.chat.completions.create(
             model='gpt-3.5-turbo-0125',
@@ -78,8 +74,6 @@ def get_chat_completion(user_message: str) -> str:
         }
         gpt_chat_history.append(assistant_message_dict)
 
-        total_token_usage += len(token_encoder(user_message)) + len(token_encoder(assistant_message))
-
         return assistant_message.content
 
     except Exception as e:
@@ -93,15 +87,15 @@ def get_gemini_response(user_message: str) -> str:
             "role": "user",
             "parts": [user_message]
         }
-        gemini_messages.append(formatted_user_message)
+        gemini_chat_history.append(formatted_user_message)
 
-        model_response = gemini.generate_content(gemini_messages).text
+        model_response = gemini.generate_content(gemini_chat_history).text
 
         formatted_model_message = {
             "role": "model",
             "parts": [model_response]
         }
-        gemini_messages.append(formatted_model_message)
+        gemini_chat_history.append(formatted_model_message)
 
         return model_response
     
@@ -146,7 +140,8 @@ def generate_summary(text: str) -> None:
 
         prompt = f"""
         You will be given a text, which will be placed after the # delimiter. 
-        Summarize the text in 500 words or less, making sure to retain important information.
+        Summarize the text in 500 words or less, making sure to retain important information,
+        such as the specific names of people, dates, and numbers.
         #######################################################################
         {text}
         """
@@ -156,8 +151,6 @@ def generate_summary(text: str) -> None:
             "role": "user",
             "content": prompt
         })
-
-        manage_gpt_tokens(prompt)
 
         response = client.chat.completions.create(
             model='gpt-3.5-turbo-0125',
@@ -174,7 +167,7 @@ def generate_summary(text: str) -> None:
         }
         gpt_chat_history.append(assistant_message_dict)
 
-        total_token_usage += len(token_encoder(prompt)) + len(token_encoder(assistant_message))
+        return assistant_message.content
     
     except Exception as e:
         gpt_chat_history.pop()

@@ -3,7 +3,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from pinecone import Pinecone, PodSpec
 from flask import request, jsonify
-from flaskr import app
+from flaskr import app, get_db_connection
 from flaskr.helpers import (
     generate_vectors,
     get_chat_completion,
@@ -33,21 +33,15 @@ if index_name not in [index['name'] for index in pinecone.list_indexes()]:
 
 index = pinecone.Index(index_name)
 
-# @app.route("/")
-# def home():
-#     return render_template("index.html")
-
 @app.route("/chat", methods=["POST"])
 def get_bot_response():    
     try:        
         user_query = request.json.get('user_input')
         use_rag = request.json.get('rag')
         gpt_response = None
+        print(f"Get bot response called with input {request}")
         if use_rag:
-            # Use GPT to get a hypothetical answer to use in HyDE
             hypothetical_answer_embedding = get_hypothetical_response_embedding(user_query)
-
-            # Create a vector using the user's message to compare similarity match using pinecone
             # user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
 
             # Query pinecone to get similar vectors 
@@ -73,11 +67,12 @@ def get_bot_response():
 
 
 @app.route("/files", methods=["POST"])
-def process_file():
+def process_and_vectorize_file():
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No file provided"})
 
+        print(f"Process and vectorize file was called with input {request}")
         file = request.files['file'].read()
         file_text = extract_text_from_file(file)
         file_docs = generate_file_chunks(file_text)
@@ -108,9 +103,13 @@ def summarize_file():
         if 'file' not in request.files:
             return jsonify({"error": "No file provided"})
 
-        file = request.files['file'].read()
-        file_text = extract_text_from_file(file)
-        generate_summary(file_text)
+        print(f"Summarize file called with input {request}")
+        file = request.files['file']
+        file_bytes = file.read()
+        file_size = len(file_bytes)
+        file_text = extract_text_from_file(file_bytes)
+        file_summary = generate_summary(file_text)
+        print(f"File successfully summarized: {file_summary}")
 
         return jsonify({"message": f"File processed successfully!", "error": False})
     
@@ -121,6 +120,7 @@ def summarize_file():
 @app.route("/clear", methods=["POST"])
 def clear_file_information():
     try:
+        print(f"Clear file information called with input {request}")
         index.delete(delete_all=True)
         return jsonify({"message": f"File information deleted successfully!", "error": False})
 
