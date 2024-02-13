@@ -53,10 +53,7 @@ gpt_chat_history = [
 
 def get_chat_completion(user_message: str) -> str:
     try:
-        global total_token_usage
-
         gpt_chat_history.append({"role": "user", "content": user_message})
-
         response = client.chat.completions.create(
             model='gpt-3.5-turbo-0125',
             messages=gpt_chat_history,
@@ -93,11 +90,15 @@ def extract_text_from_file(file) -> str:
     return text
 
 
-def generate_file_chunks(text: str) -> List[Document]:
+def generate_file_chunks(
+    text: str, 
+    desired_chunk_size=256, 
+    desired_chunk_overlap=25
+) -> List[Document]:
     text_splitter = RecursiveCharacterTextSplitter(
         separators=[],
-        chunk_size=1536,
-        chunk_overlap=200,
+        chunk_size=desired_chunk_size,
+        chunk_overlap=desired_chunk_overlap,
     )
     docs = text_splitter.create_documents([text])
     return docs
@@ -112,7 +113,6 @@ def generate_vectors(texts: List[str]) -> List[List[float]]:
 
 def generate_summary(text: str) -> None:
     try:
-        global total_token_usage
         """Takes a text and generates a summary using OpenAI."""
 
         prompt = f"""

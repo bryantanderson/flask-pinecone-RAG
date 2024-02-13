@@ -3,7 +3,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from pinecone import Pinecone, PodSpec
 from flask import request, jsonify
-from flaskr import app, get_db_connection
+from flaskr import app
 from flaskr.helpers import (
     generate_vectors,
     get_chat_completion,
@@ -12,6 +12,7 @@ from flaskr.helpers import (
     generate_file_chunks,
 )
 from flaskr.rag import get_hypothetical_response_embedding
+from flaskr.prompts import DEFAULT_PROMPT_MAPPING
 
 load_dotenv()
 
@@ -33,26 +34,30 @@ if index_name not in [index['name'] for index in pinecone.list_indexes()]:
 
 index = pinecone.Index(index_name)
 
+
 @app.route("/chat", methods=["POST"])
 def get_bot_response():    
-    try:        
+    try:       
         user_query = request.json.get('user_input')
         use_rag = request.json.get('rag')
+        default_prompt_name = request.json.get("default_prompt_name", None)
         gpt_response = None
-        print(f"Get bot response called with input {request}")
+
         if use_rag:
             # user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
             user_query_embedding = get_hypothetical_response_embedding(user_query)
-
             # Query pinecone to get similar vectors 
             similar_vectors = index.query(vector=user_query_embedding, top_k=3, include_metadata=True)
-
             # Extract the text associated with the embedding
             contexts = [item['metadata']['text'] for item in similar_vectors['matches']]
-
             # Add the extracted metadata text to use as additional context for the user's query
             context = "\n\n---\n\n".join(contexts)
-            augmented_user_query = context + "\n\n-----\n\n" + user_query
+            augmented_user_query = context + "\n-----\n" + user_query
+
+            # Add predefined prompt if applicable
+            if default_prompt_name:
+                default_prompt = DEFAULT_PROMPT_MAPPING.get(default_prompt_name)
+                augmented_user_query = default_prompt + "\n-----\n" + augmented_user_query
 
             # Use this new augmented query with GPT
             gpt_response = get_chat_completion(augmented_user_query)  
@@ -72,7 +77,6 @@ def process_and_vectorize_file():
         if 'file' not in request.files:
             return jsonify({"error": "No file provided"})
 
-        print(f"Process and vectorize file was called with input {request}")
         file = request.files['file'].read()
         file_text = extract_text_from_file(file)
         file_docs = generate_file_chunks(file_text)
@@ -97,19 +101,16 @@ def process_and_vectorize_file():
         return jsonify({"message": f"Error while trying to process File: {e}", "error": True})
     
 
-@app.route("/summarize-file", methods=["POST"])
+@app.route("/files/summarize", methods=["POST"])
 def summarize_file():
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No file provided"})
 
-        print(f"Summarize file called with input {request}")
         file = request.files['file']
         file_bytes = file.read()
-        file_size = len(file_bytes)
         file_text = extract_text_from_file(file_bytes)
         generate_summary(file_text)
-
 
         return jsonify({"message": f"File processed successfully!", "error": False})
     
@@ -120,7 +121,6 @@ def summarize_file():
 @app.route("/clear", methods=["POST"])
 def clear_file_information():
     try:
-        print(f"Clear file information called with input {request}")
         index.delete(delete_all=True)
         return jsonify({"message": f"File information deleted successfully!", "error": False})
 

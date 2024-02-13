@@ -10,11 +10,17 @@ SYSTEM = "system"
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-    st.session_state.uploaded_file_name = ""
+    st.session_state.uploaded_file_name = None
+    st.session_state.default_prompt_name = None
 
 # Region UI
-
-st.write("Smart Document Query")
+st.write("Retrieval Augmented Generation")
+with st.sidebar:
+    st.session_state.default_prompt_name = st.selectbox(
+        "Convenience prompts",
+        (None, "Costs", "Requirements", "Stakeholders")
+    )
+    print(st.session_state.default_prompt_name)
 with st.form("my-form", clear_on_submit=True):
         uploaded_file = st.file_uploader("Upload a file to query using AI")
         submitted = st.form_submit_button("Submit")
@@ -24,19 +30,24 @@ for chat_message in st.session_state.chat_history:
     with st.chat_message(chat_message["role"]):
         st.markdown(chat_message["content"])
 
-if prompt := st.chat_input("Enter a message..."):
+# Read in the user's message
+if user_input := st.chat_input("Enter a message..."):
     with st.chat_message(USER):
-        st.markdown(prompt)
+        st.markdown(user_input)
     st.session_state.chat_history.append({
         "role": USER,
-        "content": prompt
+        "content": user_input
     })
     
     # Send a request to the flask server to generate a response
     request_body = {
-        "user_input": prompt,
-        "rag": False
+        "user_input": user_input,
+        "rag": True
     }
+    # Add default prompt if user selects it
+    if st.session_state.default_prompt_name:
+        request_body["default_prompt_name"] = st.session_state.default_prompt_name
+    # Form request to Flask server
     response = requests.post(
         url=f"{BASE_URL}/chat", 
         data=json.dumps(request_body),
@@ -46,7 +57,7 @@ if prompt := st.chat_input("Enter a message..."):
 
     # Check that the response did not generate an error
     if not response_json["error"]:
-        # Render GPT's response onto the user's screen
+        # Render response onto the user's screen
         assistant_message = response_json["message"]
         with st.chat_message(ASSISTANT):
             st.markdown(assistant_message)
@@ -62,7 +73,7 @@ if prompt := st.chat_input("Enter a message..."):
 if uploaded_file and (uploaded_file.name != st.session_state.uploaded_file_name):
     files = {'file': uploaded_file}
     response = requests.post(
-        url=f"{BASE_URL}/summarize-file", 
+        url=f"{BASE_URL}/files", 
         files=files,
     )
     response_json = response.json()
