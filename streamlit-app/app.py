@@ -20,7 +20,6 @@ with st.sidebar:
         "Convenience prompts",
         (None, "Costs", "Requirements", "Stakeholders")
     )
-    print(st.session_state.default_prompt_name)
 with st.form("my-form", clear_on_submit=True):
         uploaded_file = st.file_uploader("Upload a file to query using AI")
         submitted = st.form_submit_button("Submit")

@@ -45,9 +45,9 @@ def get_bot_response():
 
         if use_rag:
             # user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
-            user_query_embedding = get_hypothetical_response_embedding(user_query)
-            # Query pinecone to get similar vectors 
-            similar_vectors = index.query(vector=user_query_embedding, top_k=3, include_metadata=True)
+            hypothetical_response_embedding = get_hypothetical_response_embedding(user_query)
+            # Query pinecone to get similar vectors to the hypothetical answer
+            similar_vectors = index.query(vector=hypothetical_response_embedding, top_k=3, include_metadata=True)
             # Extract the text associated with the embedding
             contexts = [item['metadata']['text'] for item in similar_vectors['matches']]
             # Add the extracted metadata text to use as additional context for the user's query
