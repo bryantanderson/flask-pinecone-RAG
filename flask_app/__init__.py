@@ -8,4 +8,4 @@ def get_db_connection() -> sqlite3.Connection:
     connection.row_factory = sqlite3.Row
     return connection
 
-import flaskr.views
+import flask_app.views

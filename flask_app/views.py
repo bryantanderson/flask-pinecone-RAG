@@ -3,16 +3,16 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from pinecone import Pinecone, PodSpec
 from flask import request, jsonify
-from flaskr import app
-from flaskr.helpers import (
+from flask_app import app
+from flask_app.helpers import (
     generate_vectors,
     get_chat_completion,
     extract_text_from_file,
     generate_summary,
     generate_file_chunks,
 )
-from flaskr.rag import get_hypothetical_response_embedding
-from flaskr.prompts import DEFAULT_PROMPT_MAPPING
+from flask_app.rag import get_hypothetical_response_embedding
+from flask_app.prompts import DEFAULT_PROMPT_MAPPING
 
 load_dotenv()
 

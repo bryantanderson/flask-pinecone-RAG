@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(
-    name='flaskr',
-    packages=['flaskr'],
+    name='flask_app',
+    packages=['flask_app'],
     include_package_data=True,
     install_requires=[
         'flask',
@@ -12,6 +12,8 @@ setup(
         'langchain',
         'python-dotenv'
         'pypdf2',
-        'gunicorn'
+        'gunicorn',
+        'tiktoken',
+        'langchain-openai'
     ],
 )
