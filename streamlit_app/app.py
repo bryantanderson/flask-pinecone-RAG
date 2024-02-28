@@ -11,18 +11,12 @@ SYSTEM = "system"
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
     st.session_state.uploaded_file_name = None
-    st.session_state.default_prompt_name = None
 
 # Region UI
 st.write("Retrieval Augmented Generation")
-with st.sidebar:
-    st.session_state.default_prompt_name = st.selectbox(
-        "Convenience prompts",
-        (None, "Costs", "Requirements", "Stakeholders")
-    )
 with st.form("my-form", clear_on_submit=True):
-        uploaded_file = st.file_uploader("Upload a file to query using AI")
-        submitted = st.form_submit_button("Submit")
+    uploaded_file = st.file_uploader("Upload a file to query using AI")
+    submitted = st.form_submit_button("Submit")
 
 # Render the chat history onto the user's screen
 for chat_message in st.session_state.chat_history:
@@ -43,9 +37,7 @@ if user_input := st.chat_input("Enter a message..."):
         "user_input": user_input,
         "rag": True
     }
-    # Add default prompt if user selects it
-    if st.session_state.default_prompt_name:
-        request_body["default_prompt_name"] = st.session_state.default_prompt_name
+
     # Form request to Flask server
     response = requests.post(
         url=f"{BASE_URL}/chat", 

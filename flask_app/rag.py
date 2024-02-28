@@ -18,7 +18,7 @@ def get_hypothetical_response_embedding(user_query):
     with similar documents in a reliable knowledge base.
     """
 
-    prompt_template = """Please answer the user's question about the details regarding important work documents
+    prompt_template = """Please answer the user's question with as much detail as possible, even if you don't know the answer.
     Question: {question}
     Answer:"""
 

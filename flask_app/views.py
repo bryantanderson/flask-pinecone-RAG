@@ -40,25 +40,19 @@ def get_bot_response():
     try:       
         user_query = request.json.get('user_input')
         use_rag = request.json.get('rag')
-        default_prompt_name = request.json.get("default_prompt_name", None)
         gpt_response = None
 
         if use_rag:
-            # user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
-            hypothetical_response_embedding = get_hypothetical_response_embedding(user_query)
+            user_query_embedding = client.embeddings.create(input=[user_query], model=EMBEDDING_MODEL).data[0].embedding
+            # user_query_embedding = get_hypothetical_response_embedding(user_query)
             # Query pinecone to get similar vectors to the hypothetical answer
-            similar_vectors = index.query(vector=hypothetical_response_embedding, top_k=3, include_metadata=True)
+            similar_vectors = index.query(vector=user_query_embedding, top_k=5, include_metadata=True)
             # Extract the text associated with the embedding
             contexts = [item['metadata']['text'] for item in similar_vectors['matches']]
             # Add the extracted metadata text to use as additional context for the user's query
             context = "\n\n---\n\n".join(contexts)
             augmented_user_query = context + "\n-----\n" + user_query
-
-            # Add predefined prompt if applicable
-            if default_prompt_name:
-                default_prompt = DEFAULT_PROMPT_MAPPING.get(default_prompt_name)
-                augmented_user_query = default_prompt + "\n-----\n" + augmented_user_query
-
+            print(augmented_user_query)
             # Use this new augmented query with GPT
             gpt_response = get_chat_completion(augmented_user_query)  
 
